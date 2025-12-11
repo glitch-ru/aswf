@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Мини-сокращатель</title>
+</head>
+<body>
+<h2>Мини-сокращатель ссылок</h2>
+<input id="url" placeholder="https://example.com" style="width:300px">
+<button onclick="makeLink()">Сократить</button>
+<p id="out"></p>
+
+<script>
+  // Загружаем ссылки из localStorage
+  let links = JSON.parse(localStorage.getItem("links") || "{}");
+
+  function makeLink() {
+    const url = document.getElementById("url").value.trim();
+    if (!url) return;
+
+    const code = Math.random().toString(36).substring(2,7);
+    links[code] = url;
+
+    // Сохраняем обратно
+    localStorage.setItem("links", JSON.stringify(links));
+
+    document.getElementById("out").innerHTML =
+      `Короткая ссылка: <a href="#${code}">${location.href}#${code}</a>`;
+  }
+
+  function checkRedirect() {
+    const hash = location.hash.substring(1);
+    if (links[hash]) {
+      location.href = links[hash];
+    }
+  }
+
+  checkRedirect();
+</script>
+</body>
+</html>
