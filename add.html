@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Добавить короткую ссылку</title>
+<title>Admin Panel</title>
 <style>
 body { font-family: Arial; max-width: 500px; margin: 30px auto; }
 input, button { width: 100%; padding: 10px; margin: 6px 0; }
@@ -10,13 +10,13 @@ input, button { width: 100%; padding: 10px; margin: 6px 0; }
 </head>
 <body>
 
-<h2>Добавить короткую ссылку</h2>
+<h2>Add a short link</h2>
 
-<input id="token" type="password" placeholder="GitHub Personal Access Token">
-<input id="shortCode" placeholder="Короткий код (например: abc12)">
-<input id="fullUrl" placeholder="Полная ссылка (https://...)">
+<input id="token" type="password" placeholder="Token">
+<input id="shortCode" placeholder="Short code (e.g. abc12)">
+<input id="fullUrl" placeholder="Full URL (https://...)">
 
-<button onclick="addLink()">Добавить</button>
+<button onclick="addLink()">Add link</button>
 
 <div id="msg" style="margin-top:15px;font-weight:bold"></div>
 
@@ -28,7 +28,7 @@ async function addLink() {
     const msg  = document.getElementById("msg");
 
     if (!token || !code || !url) {
-        msg.textContent = "Заполните все поля!";
+        msg.textContent = "All fields are required!";
         return;
     }
 
@@ -47,7 +47,7 @@ async function addLink() {
                 "Accept": "application/vnd.github.v3+json"
             }
         });
-        if (!res.ok) throw new Error("Ошибка GET: " + res.status);
+        if (!res.ok) throw new Error("Error GET: " + res.status);
 
         const data = await res.json();
 
@@ -77,14 +77,14 @@ async function addLink() {
         });
 
         if (putRes.ok) {
-            msg.textContent = "Ссылка успешно добавлена! Код: " + code;
+            msg.textContent = "Link shortened! New URL: https://aswf.vercel.app/" + code;
         } else {
             const putData = await putRes.json();
-            msg.textContent = "Ошибка PUT: " + JSON.stringify(putData);
+            msg.textContent = "Error PUT: " + JSON.stringify(putData);
         }
 
     } catch (e) {
-        msg.textContent = "Ошибка: " + e.message;
+        msg.textContent = "Error: " + e.message;
     }
 }
 </script>
