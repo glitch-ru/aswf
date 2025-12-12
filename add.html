@@ -1,24 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Admin Panel</title>
-<style>
-body { font-family: Arial; max-width: 500px; margin: 30px auto; }
-input, button { width: 100%; padding: 10px; margin: 6px 0; }
-</style>
+<title>Админ-панель сокращателя ссылок</title>
 </head>
 <body>
 
-<h2>Add a short link</h2>
+<h2>Добавить короткую ссылку</h2>
 
 <input id="token" type="password" placeholder="Token">
-<input id="shortCode" placeholder="Short code (e.g. abc12)">
-<input id="fullUrl" placeholder="Full URL (https://...)">
+<input id="shortCode" placeholder="Короткий код (например, abc123)">
+<input id="fullUrl" placeholder="Длинная ссылка (https://...)">
 
-<button onclick="addLink()">Add link</button>
+<button onclick="addLink()">Добавить ссылку</button>
 
-<div id="msg" style="margin-top:15px;font-weight:bold"></div>
+<div id="msg"></div>
 
 <script>
 async function addLink() {
@@ -27,65 +23,42 @@ async function addLink() {
     const url  = document.getElementById("fullUrl").value.trim();
     const msg  = document.getElementById("msg");
 
-    if (!token || !code || !url) {
-        msg.textContent = "All fields are required!";
-        return;
-    }
-
-    // 🔹 фиксированные параметры репозитория
     const repo = "glitch-ru/aswf";
     const branch = "main";
     const path = "db.json";
 
     const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`;
 
-    try {
-        // 1️⃣ Получаем текущий файл
-        const res = await fetch(apiUrl, {
-            headers: {
-                "Authorization": "token " + token,
-                "Accept": "application/vnd.github.v3+json"
-            }
-        });
-        if (!res.ok) throw new Error("Error GET: " + res.status);
-
-        const data = await res.json();
-
-        // 2️⃣ Декодируем содержимое
-        const content = atob(data.content.replace(/\n/g, ''));
-        const db = JSON.parse(content);
-
-        // 3️⃣ Добавляем/обновляем ссылку
-        db[code] = url;
-
-        // 4️⃣ Кодируем обратно в base64
-        const updatedContent = btoa(JSON.stringify(db, null, 2));
-
-        // 5️⃣ Отправляем PUT
-        const putRes = await fetch(apiUrl, {
-            method: "PUT",
-            headers: {
-                "Authorization": "token " + token,
-                "Accept": "application/vnd.github.v3+json"
-            },
-            body: JSON.stringify({
-                message: `Add/update short link: ${code}`,
-                content: updatedContent,
-                sha: data.sha,
-                branch: branch
-            })
-        });
-
-        if (putRes.ok) {
-            msg.textContent = "Link shortened! New URL: https://aswf.vercel.app/" + code;
-        } else {
-            const putData = await putRes.json();
-            msg.textContent = "Error PUT: " + JSON.stringify(putData);
+    const res = await fetch(apiUrl, {
+        headers: {
+            "Authorization": "token " + token,
+            "Accept": "application/vnd.github.v3+json"
         }
+    });
 
-    } catch (e) {
-        msg.textContent = "Error: " + e.message;
-    }
+    const data = await res.json();
+    const content = atob(data.content.replace(/\n/g, ''));
+    const db = JSON.parse(content);
+
+    db[code] = url;
+
+    const updatedContent = btoa(JSON.stringify(db, null, 2));
+
+    await fetch(apiUrl, {
+        method: "PUT",
+        headers: {
+            "Authorization": "token " + token,
+            "Accept": "application/vnd.github.v3+json"
+        },
+        body: JSON.stringify({
+            message: `Add/update short link: ${code}`,
+            content: updatedContent,
+            sha: data.sha,
+            branch: branch
+        })
+    });
+
+    msg.textContent = "Ссылка сокращена! Код: " + code;
 }
 </script>
 
