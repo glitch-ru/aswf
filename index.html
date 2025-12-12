@@ -1,37 +1,46 @@
 <!doctype html>
-<html lang="ru">
+<html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Redirect</title>
+<title>Админка сокращателя</title>
+<style>
+  body { font-family: Arial; max-width: 500px; margin: 30px auto; }
+  input { width: 100%; padding: 10px; margin: 5px 0; }
+  button { width: 100%; padding: 10px; margin-top: 10px; }
+</style>
 </head>
 <body>
-<div id="msg" style="font-family:Arial;padding:20px">Перенаправление...</div>
+
+<h2>Создать короткую ссылку</h2>
+
+<input id="url" placeholder="Полная ссылка (https://...)">
+<input id="code" placeholder="Короткий код (например abc12)">
+
+<button onclick="saveLink()">Создать / Обновить</button>
+
+<div id="msg" style="margin-top:15px;font-weight:bold"></div>
 
 <script>
-(async () => {
-  const params = new URLSearchParams(location.search);
-  const code = params.get("c");
+function saveLink() {
+    let url  = document.getElementById("url").value.trim();
+    let code = document.getElementById("code").value.trim();
 
-  if (!code) {
-    document.getElementById("msg").textContent = "Не указан параметр ?c=";
-    return;
-  }
-
-  try {
-    const res = await fetch("https://jsonhosting.com/api/json/6f27b315/raw");
-    const data = await res.json();
-
-    if (data[code]) {
-      location.href = data[code];
-    } else {
-      document.getElementById("msg").textContent = "Код не найден: " + code;
+    if (!url || !code) {
+        document.getElementById("msg").textContent = "Заполните оба поля!";
+        return;
     }
 
-  } catch(e){
-    document.getElementById("msg").textContent = "Ошибка: " + e;
-  }
-})();
+    fetch("save.php", {
+        method: "POST",
+        body: new URLSearchParams({ url, code })
+    })
+    .then(r => r.text())
+    .then(t => {
+        document.getElementById("msg").textContent =
+            t === "ok" ? ("Готово! Ваша ссылка: ?c=" + code) : t;
+    });
+}
 </script>
+
 </body>
 </html>
