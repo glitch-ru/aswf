@@ -1,35 +1,35 @@
 <!doctype html>
 <html lang="ru">
-<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Redirector</title>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Redirect</title>
 </head>
 <body>
-<div id="msg" style="font-family:Arial;padding:20px;">Идёт перенаправление...</div>
+<div id="msg" style="font-family:Arial;padding:20px">Перенаправление...</div>
+
 <script>
-(async ()=>{
+(async () => {
   const params = new URLSearchParams(location.search);
-  const code = params.get('c');
-  if(!code){
-    document.getElementById('msg').textContent = 'Код не указан (параметр c).';
+  const code = params.get("c");
+
+  if (!code) {
+    document.getElementById("msg").textContent = "Не указан параметр ?c=";
     return;
   }
-  const binId = '693b80bc43b1c97be9e82a37';
-  const endpoint = `https://api.jsonbin.io/v3/b/${binId}/latest`;
-  try{
-    const res = await fetch(endpoint, {headers:{'Content-Type':'application/json'}});
-    if(!res.ok) throw new Error('Ошибка чтения bin: ' + res.status);
-    const j = await res.json();
-    let data = j.record ?? j;
-    data = data?.data ?? data;
-    if(data && typeof data === 'object' && data[code]){
-      const target = data[code];
-      // перенаправляем
-      window.location.replace(target);
+
+  try {
+    const res = await fetch("https://jsonhosting.com/api/json/6f27b315/raw");
+    const data = await res.json();
+
+    if (data[code]) {
+      location.href = data[code];
     } else {
-      document.getElementById('msg').textContent = 'Код не найден: ' + code;
+      document.getElementById("msg").textContent = "Код не найден: " + code;
     }
-  }catch(e){
-    document.getElementById('msg').textContent = 'Ошибка: ' + e.message;
+
+  } catch(e){
+    document.getElementById("msg").textContent = "Ошибка: " + e;
   }
 })();
 </script>
