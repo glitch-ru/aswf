@@ -2,20 +2,17 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Добавить ссылку в db.json на GitHub</title>
+<title>Добавить короткую ссылку</title>
 <style>
-body{font-family:Arial;max-width:500px;margin:30px auto;}
-input,button{width:100%;padding:10px;margin:6px 0;}
+body { font-family: Arial; max-width: 500px; margin: 30px auto; }
+input, button { width: 100%; padding: 10px; margin: 6px 0; }
 </style>
 </head>
 <body>
 
 <h2>Добавить короткую ссылку</h2>
 
-<input id="token" placeholder="GitHub Personal Access Token">
-<input id="repo" placeholder="user/repo (например: username/myrepo)">
-<input id="branch" placeholder="ветка (default: main)" value="main">
-<input id="filePath" placeholder="Путь к db.json (например: db.json)" value="db.json">
+<input id="token" type="password" placeholder="GitHub Personal Access Token">
 <input id="shortCode" placeholder="Короткий код (например: abc12)">
 <input id="fullUrl" placeholder="Полная ссылка (https://...)">
 
@@ -24,61 +21,71 @@ input,button{width:100%;padding:10px;margin:6px 0;}
 <div id="msg" style="margin-top:15px;font-weight:bold"></div>
 
 <script>
-async function addLink(){
-  const token = document.getElementById("token").value.trim();
-  const repo  = document.getElementById("repo").value.trim();
-  const branch = document.getElementById("branch").value.trim() || "main";
-  const path  = document.getElementById("filePath").value.trim();
-  const code  = document.getElementById("shortCode").value.trim();
-  const url   = document.getElementById("fullUrl").value.trim();
+async function addLink() {
+    const token = document.getElementById("token").value.trim();
+    const code = document.getElementById("shortCode").value.trim();
+    const url  = document.getElementById("fullUrl").value.trim();
+    const msg  = document.getElementById("msg");
 
-  if(!token||!repo||!path||!code||!url){
-    document.getElementById("msg").textContent = "Заполните все поля!";
-    return;
-  }
-
-  const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`;
-
-  try{
-    // 1️⃣ Получаем текущий файл
-    const res = await fetch(apiUrl, {
-      headers: { "Authorization": "token " + token, "Accept":"application/vnd.github.v3+json" }
-    });
-    if(!res.ok) throw new Error("Ошибка GET: " + res.status);
-    const data = await res.json();
-
-    // 2️⃣ Декодируем содержимое
-    const content = atob(data.content.replace(/\n/g,''));
-    const db = JSON.parse(content);
-
-    // 3️⃣ Добавляем новую ссылку
-    db[code] = url;
-
-    // 4️⃣ Кодируем обратно в base64
-    const updatedContent = btoa(JSON.stringify(db, null, 2));
-
-    // 5️⃣ Отправляем PUT
-    const putRes = await fetch(apiUrl, {
-      method: "PUT",
-      headers: { "Authorization": "token " + token, "Accept":"application/vnd.github.v3+json" },
-      body: JSON.stringify({
-        message: `Add/update short link: ${code}`,
-        content: updatedContent,
-        sha: data.sha,
-        branch: branch
-      })
-    });
-
-    const putData = await putRes.json();
-    if(putRes.ok){
-      document.getElementById("msg").textContent = "Ссылка добавлена успешно!";
-    } else {
-      document.getElementById("msg").textContent = "Ошибка PUT: " + JSON.stringify(putData);
+    if (!token || !code || !url) {
+        msg.textContent = "Заполните все поля!";
+        return;
     }
 
-  } catch(e){
-    document.getElementById("msg").textContent = "Ошибка: " + e.message;
-  }
+    // 🔹 фиксированные параметры репозитория
+    const repo = "glitch-ru/aswf";
+    const branch = "main";
+    const path = "db.json";
+
+    const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`;
+
+    try {
+        // 1️⃣ Получаем текущий файл
+        const res = await fetch(apiUrl, {
+            headers: {
+                "Authorization": "token " + token,
+                "Accept": "application/vnd.github.v3+json"
+            }
+        });
+        if (!res.ok) throw new Error("Ошибка GET: " + res.status);
+
+        const data = await res.json();
+
+        // 2️⃣ Декодируем содержимое
+        const content = atob(data.content.replace(/\n/g, ''));
+        const db = JSON.parse(content);
+
+        // 3️⃣ Добавляем/обновляем ссылку
+        db[code] = url;
+
+        // 4️⃣ Кодируем обратно в base64
+        const updatedContent = btoa(JSON.stringify(db, null, 2));
+
+        // 5️⃣ Отправляем PUT
+        const putRes = await fetch(apiUrl, {
+            method: "PUT",
+            headers: {
+                "Authorization": "token " + token,
+                "Accept": "application/vnd.github.v3+json"
+            },
+            body: JSON.stringify({
+                message: `Add/update short link: ${code}`,
+                content: updatedContent,
+                sha: data.sha,
+                branch: branch
+            })
+        });
+
+        if (putRes.ok) {
+            msg.textContent = "Ссылка успешно добавлена! Код: " + code;
+        } else {
+            const putData = await putRes.json();
+            msg.textContent = "Ошибка PUT: " + JSON.stringify(putData);
+        }
+
+    } catch (e) {
+        msg.textContent = "Ошибка: " + e.message;
+    }
 }
 </script>
 
