@@ -2,27 +2,33 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Сокращатель</title>
+<title>Redirect</title>
 </head>
 <body>
 <script>
 (async () => {
-  let code = location.pathname.slice(1); // убираем начальный слеш
+  // Получаем код из пути /CODE
+  let code = location.pathname.slice(1);
+
+  // Если пусто — показываем сообщение
   if (!code) {
-    document.body.innerHTML = "<h2>Укажите код ссылки</h2>";
+    document.body.innerHTML = "<h2>Укажите короткий код (например /abc12)</h2>";
     return;
   }
 
   try {
+    // Загружаем базу (анти-кеш ?_=timestamp)
     const res = await fetch("db.json?_=" + Date.now());
     const db = await res.json();
 
+    // Если код существует — делаем редирект
     if (db[code]) {
       location.href = db[code];
     } else {
-      document.body.innerHTML = "<h2>Код не найден</h2>";
+      document.body.innerHTML = "<h2>Код <b>" + code + "</b> не найден</h2>";
     }
-  } catch(e) {
+
+  } catch (e) {
     document.body.innerHTML = "<h2>Ошибка загрузки базы</h2>";
   }
 })();
