@@ -2,34 +2,30 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Перенаправление...</title>
+<title>Сокращатель</title>
 </head>
 <body>
 <script>
-async function run() {
-    const params = new URLSearchParams(location.search);
-    const code = params.get("c");
+(async () => {
+  let code = location.pathname.slice(1); // убираем начальный слеш
+  if (!code) {
+    document.body.innerHTML = "<h2>Укажите код ссылки</h2>";
+    return;
+  }
 
-    if (!code) {
-        document.body.innerHTML = "<h2>Укажите параметр CODE</h2>";
-        return;
+  try {
+    const res = await fetch("db.json?_=" + Date.now());
+    const db = await res.json();
+
+    if (db[code]) {
+      location.href = db[code];
+    } else {
+      document.body.innerHTML = "<h2>Код не найден</h2>";
     }
-
-    try {
-        const response = await fetch("db.json?_=" + Date.now()); // анти-кеш
-        const db = await response.json();
-
-        if (db[code]) {
-            location.href = db[code];
-        } else {
-            document.body.innerHTML = "<h2>Код не найден</h2>";
-        }
-    } catch (e) {
-        document.body.innerHTML = "<h2>Ошибка загрузки базы данных</h2>";
-    }
-}
-
-run();
+  } catch(e) {
+    document.body.innerHTML = "<h2>Ошибка загрузки базы</h2>";
+  }
+})();
 </script>
 </body>
 </html>
