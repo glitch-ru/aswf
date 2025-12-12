@@ -1,46 +1,35 @@
 <!doctype html>
-<html>
+<html lang="ru">
 <head>
-<meta charset="utf-8">
-<title>Админка сокращателя</title>
-<style>
-  body { font-family: Arial; max-width: 500px; margin: 30px auto; }
-  input { width: 100%; padding: 10px; margin: 5px 0; }
-  button { width: 100%; padding: 10px; margin-top: 10px; }
-</style>
+<meta charset="UTF-8">
+<title>Сокращатель</title>
 </head>
 <body>
-
-<h2>Создать короткую ссылку</h2>
-
-<input id="url" placeholder="Полная ссылка (https://...)">
-<input id="code" placeholder="Короткий код (например abc12)">
-
-<button onclick="saveLink()">Создать / Обновить</button>
-
-<div id="msg" style="margin-top:15px;font-weight:bold"></div>
-
 <script>
-function saveLink() {
-    let url  = document.getElementById("url").value.trim();
-    let code = document.getElementById("code").value.trim();
+async function run() {
+    const params = new URLSearchParams(location.search);
+    const code = params.get("c");
 
-    if (!url || !code) {
-        document.getElementById("msg").textContent = "Заполните оба поля!";
+    if (!code) {
+        document.body.innerHTML = "<h2>Укажите параметр ?c=код</h2>";
         return;
     }
 
-    fetch("save.php", {
-        method: "POST",
-        body: new URLSearchParams({ url, code })
-    })
-    .then(r => r.text())
-    .then(t => {
-        document.getElementById("msg").textContent =
-            t === "ok" ? ("Готово! Ваша ссылка: ?c=" + code) : t;
-    });
-}
-</script>
+    try {
+        const response = await fetch("db.json?_=" + Date.now()); // анти-кеш
+        const db = await response.json();
 
+        if (db[code]) {
+            location.href = db[code];
+        } else {
+            document.body.innerHTML = "<h2>Код не найден</h2>";
+        }
+    } catch (e) {
+        document.body.innerHTML = "<h2>Ошибка загрузки базы</h2>";
+    }
+}
+
+run();
+</script>
 </body>
 </html>
