@@ -1,35 +1,31 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Redirect</title>
+<title>Redirect...</title>
 </head>
 <body>
 <script>
 (async () => {
-  // Получаем код из пути /CODE
   let code = location.pathname.slice(1);
 
-  // Если пусто — показываем сообщение
   if (!code) {
-    document.body.innerHTML = "<h2>Укажите короткий код (например /abc12)</h2>";
+    document.body.innerHTML = "<h2>Need a code (/CODE)</h2>";
     return;
   }
 
   try {
-    // Загружаем базу (анти-кеш ?_=timestamp)
     const res = await fetch("db.json?_=" + Date.now());
     const db = await res.json();
-
-    // Если код существует — делаем редирект
+    
     if (db[code]) {
       location.href = db[code];
     } else {
-      document.body.innerHTML = "<h2>Код <b>" + code + "</b> не найден</h2>";
+      document.body.innerHTML = "<h2>Code <b>" + code + "</b> not found</h2>";
     }
 
   } catch (e) {
-    document.body.innerHTML = "<h2>Ошибка загрузки базы</h2>";
+    document.body.innerHTML = "<h2>Error loading DataBase</h2>";
   }
 })();
 </script>
