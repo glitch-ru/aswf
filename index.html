@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Сокращатель</title>
+<title>Перенаправление...</title>
 </head>
 <body>
 <script>
@@ -11,7 +11,7 @@ async function run() {
     const code = params.get("c");
 
     if (!code) {
-        document.body.innerHTML = "<h2>Укажите параметр ?c=код</h2>";
+        document.body.innerHTML = "<h2>Укажите параметр CODE</h2>";
         return;
     }
 
@@ -25,7 +25,7 @@ async function run() {
             document.body.innerHTML = "<h2>Код не найден</h2>";
         }
     } catch (e) {
-        document.body.innerHTML = "<h2>Ошибка загрузки базы</h2>";
+        document.body.innerHTML = "<h2>Ошибка загрузки базы данных</h2>";
     }
 }
 
