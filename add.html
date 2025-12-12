@@ -1,185 +1,120 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8" />
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Сокращатель ссылок (JSONBin)</title>
+<title>Сокращатель ссылок — Admin</title>
 <style>
-  body{font-family:Inter,system-ui,Arial;margin:24px;max-width:900px}
-  input,button,textarea{font-size:14px;padding:8px;margin:6px 0;border:1px solid #ddd;border-radius:6px;width:100%}
-  .row{display:flex;gap:8px}
-  .row > *{flex:1}
-  table{width:100%;border-collapse:collapse;margin-top:12px}
-  td,th{padding:8px;border-bottom:1px solid #eee}
-  .small{font-size:13px;color:#666}
-  .hint{font-size:13px;color:#444;margin-top:6px}
+  body { font-family: Arial; max-width: 700px; margin: 25px auto; }
+  input,button { padding: 10px; font-size: 15px; width: 100%; margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+  td,th { border-bottom: 1px solid #ddd; padding: 8px; }
 </style>
 </head>
 <body>
-<h1>Сокращатель ссылок (JSONBin)</h1>
 
-<label>BIN ID (если нужно заменить):</label>
-<input id="binId" value="693b80bc43b1c97be9e82a37" />
+<h2>Сокращатель ссылок (Admin)</h2>
 
-<label>Master / Access Key (нужно только для записи; не публикуйте его):</label>
-<input id="masterKey" placeholder="X-Master-Key или X-Access-Key (вставьте только при сохранении)" />
+<label>Полная ссылка:</label>
+<input id="fullUrl" placeholder="https://example.com">
 
-<div style="margin-top:12px">
-  <label>Полная ссылка:</label>
-  <input id="fullUrl" placeholder="https://example.com/very/long/link" />
-</div>
+<label>Короткий код (или пусто):</label>
+<input id="shortCode" placeholder="Например: abc12">
 
-<div class="row" style="margin-top:6px">
-  <input id="customCode" placeholder="Кастомный код (оставьте пустым для автоматической генерации, 5 символов)" />
-  <button id="createBtn">Создать</button>
-</div>
+<button onclick="createLink()">Создать</button>
 
-<div class="hint">
-  Редирект: <code>https://aswf.vercel.app?c=КОД</code>. 
-  При записи файл обновляет весь бин (PUT). JSONBin требует заголовок X-Master-Key (или X-Access-Key) для обновления. :contentReference[oaicite:1]{index=1}
-</div>
+<hr>
+<h3>Все ссылки</h3>
+<div id="status">Загрузка...</div>
 
-<hr/>
-
-<h3>Текущие ссылки в бин</h3>
-<div id="status" class="small">Загрузка...</div>
 <table id="linksTable">
-  <thead><tr><th>Код</th><th>Ссылка</th><th>Действие</th></tr></thead>
+  <thead>
+    <tr><th>Код</th><th>URL</th><th>Удалить</th></tr>
+  </thead>
   <tbody></tbody>
 </table>
 
 <script>
-const out = (t)=>document.getElementById('status').textContent = t;
+const RAW = "https://jsonhosting.com/api/json/6f27b315/raw";
+const API = "https://jsonhosting.com/api/json/6f27b315";
+const EDIT_KEY = "4607b84db6df73492889f1cd1946a00ed5784551fc3c1f284dcadc5723c9f9ab";
 
-function makeCode(len=5){
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let s='';
-  for(let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
-  return s;
+function randCode(len=5){
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let s = "";
+    for(let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
+    return s;
 }
 
-// Попробуем прочитать бин; JSONBin v3: GET /v3/b/<id>/latest
-async function readBin(binId){
-  const url = `https://api.jsonbin.io/v3/b/${binId}/latest`;
-  const res = await fetch(url, {headers: {'Content-Type':'application/json'}});
-  if(!res.ok) throw new Error('Ошибка чтения bin: ' + res.status);
-  const j = await res.json();
-  // структура ответа может содержать поле "record" или сразу объект — обработаем аккуратно
-  // Обычно JSONBin v3 возвращает { record: { ... } , metadata: {...} }
-  return j.record ?? j; 
+async function loadDB(){
+    const res = await fetch(RAW);
+    const data = await res.json();
+    return typeof data === "object" ? data : {};
 }
 
-async function updateBin(binId, data, masterKey){
-  const url = `https://api.jsonbin.io/v3/b/${binId}`;
-  const headers = {'Content-Type':'application/json'};
-  if(masterKey) {
-    headers['X-Master-Key'] = masterKey;
-  } else {
-    throw new Error('Для обновления bin нужен X-Master-Key или X-Access-Key');
-  }
-  const res = await fetch(url, {method:'PUT', headers, body: JSON.stringify({data})});
-  if(!res.ok){
-    const text = await res.text();
-    throw new Error('Ошибка обновления bin: ' + res.status + ' — ' + text);
-  }
-  return await res.json();
+async function saveDB(obj){
+    await fetch(API, {
+        method: "POST",
+        headers: { 
+            "Content-Type": "application/json",
+            "X-Api-Key": EDIT_KEY
+        },
+        body: JSON.stringify(obj)
+    });
 }
 
-function renderTable(map){
-  const tbody = document.querySelector('#linksTable tbody');
-  tbody.innerHTML = '';
-  const keys = Object.keys(map || {}).sort();
-  if(keys.length===0){
-    tbody.innerHTML = '<tr><td colspan="3" class="small">Ссылок не найдено</td></tr>';
-    return;
-  }
-  for(const k of keys){
-    const tr = document.createElement('tr');
-    const td1 = document.createElement('td'); td1.textContent = k;
-    const td2 = document.createElement('td');
-    const a = document.createElement('a'); a.href = map[k]; a.textContent = map[k]; a.target='_blank';
-    td2.appendChild(a);
-    const td3 = document.createElement('td');
-    const copyBtn = document.createElement('button'); copyBtn.textContent='Копировать';
-    copyBtn.onclick = ()=>{ navigator.clipboard.writeText(window.location.origin + '/?c=' + k).then(()=>alert('Скопировано')) }
-    const delBtn = document.createElement('button'); delBtn.textContent='Удалить';
-    delBtn.style.marginLeft = '8px';
-    delBtn.onclick = async ()=>{
-      if(!confirm('Удалить код '+k+'?')) return;
-      try{
-        out('Удаляем...');
-        const binId = document.getElementById('binId').value.trim();
-        const key = document.getElementById('masterKey').value.trim();
-        const bin = await readBin(binId);
-        // bin может иметь структуру { data: { ... } } или directly the map:
-        const current = bin?.data ?? (bin?.record ?? bin);
-        delete current[k];
-        await updateBin(binId, current, key);
-        out('Удалено');
-        await loadAndRender();
-      }catch(e){
-        alert(e.message);
-        out('Ошибка');
-      }
+async function render(){
+    document.getElementById("status").textContent = "Загрузка...";
+    const db = await loadDB();
+
+    const tbody = document.querySelector("#linksTable tbody");
+    tbody.innerHTML = "";
+
+    for(const code in db){
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${code}</td>
+          <td><a href="${db[code]}" target="_blank">${db[code]}</a></td>
+          <td><button onclick="del('${code}')">🗑</button></td>
+        `;
+
+        tbody.appendChild(tr);
     }
-    td3.appendChild(copyBtn); td3.appendChild(delBtn);
 
-    tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
-    tbody.appendChild(tr);
-  }
+    document.getElementById("status").textContent = "Готово. Всего: " + Object.keys(db).length;
 }
 
-async function loadAndRender(){
-  try{
-    out('Загружаю bin...');
-    const binId = document.getElementById('binId').value.trim();
-    const bin = await readBin(binId);
-    // возможные вложения: api может возвращать { record: { data: {...} } } или { record: {...} } или { data: {...} }
-    let map = bin?.data ?? bin?.record ?? bin;
-    // если в ответе есть поле "data" внутри "record"
-    if(map && map.data && typeof map.data === 'object' && Object.keys(map).length>1) {
-      // оставим как есть
-    }
-    // если сервер вернул поле "data" как ключ-обёртку (иногда создают {data: {}}) - распакуем
-    if(map && map.data && Object.keys(map).length===1) map = map.data;
-    if(!map || typeof map !== 'object') map = {};
-    renderTable(map);
-    out('Готово. Всего: ' + Object.keys(map).length);
-  }catch(e){
-    out('Ошибка при загрузке: ' + e.message);
-    document.querySelector('#linksTable tbody').innerHTML = '<tr><td colspan="3" class="small">Не удалось загрузить бин. Проверьте BIN ID.</td></tr>';
-  }
+async function createLink(){
+    let url = document.getElementById("fullUrl").value.trim();
+    let code = document.getElementById("shortCode").value.trim();
+
+    if(!url){ alert("Введите ссылку"); return; }
+    if(!code) code = randCode();
+
+    const db = await loadDB();
+
+    if(db[code] && !confirm("Код занят. Перезаписать?")) return;
+
+    db[code] = url;
+
+    await saveDB(db);
+    await render();
+
+    alert("Создано: ?c=" + code);
 }
 
-document.getElementById('createBtn').addEventListener('click', async ()=>{
-  const longUrl = document.getElementById('fullUrl').value.trim();
-  if(!longUrl){ alert('Введите полную ссылку'); return; }
-  let code = document.getElementById('customCode').value.trim();
-  if(!code) code = makeCode(5);
-  code = code.replace(/[^A-Za-z0-9_-]/g,'').slice(0,20);
-  const binId = document.getElementById('binId').value.trim();
-  const masterKey = document.getElementById('masterKey').value.trim();
-  try{
-    out('Читаю бин...');
-    const raw = await readBin(binId);
-    let current = raw?.data ?? raw?.record ?? raw;
-    if(current && current.data && Object.keys(current).length===1) current = current.data;
-    if(!current || typeof current !== 'object') current = {};
-    if(current[code]){
-      if(!confirm('Код уже занят. Перезаписать?')) { out('Отменено'); return; }
-    }
-    current[code] = longUrl;
-    out('Сохраняю bin (требуется ключ)...');
-    await updateBin(binId, current, masterKey);
-    out('Сохранено. Код: ' + code);
-    await loadAndRender();
-  }catch(e){
-    alert('Ошибка: ' + e.message + '\n\nЕсли вы не хотите хранить ключ в UI, можете вставить его временно в поле Master Key и нажать Создать. Для публичных бин можно читать без ключа, но запись требует ключа.');
-    out('Ошибка');
-  }
-});
+async function del(code){
+    if(!confirm("Удалить код: " + code + "?")) return;
 
-window.addEventListener('load', loadAndRender);
+    const db = await loadDB();
+    delete db[code];
+    await saveDB(db);
+    await render();
+}
+
+render();
 </script>
+
 </body>
 </html>
