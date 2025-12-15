@@ -7,7 +7,7 @@
 <body>
 <script>
 (async () => {
-  let code = location.pathname.slice(1);
+  const code = location.pathname.slice(1);
 
   if (!code) {
     document.body.textContent = "Нужен параметр CODE";
@@ -18,7 +18,10 @@
   const db = await res.json();
 
   if (db[code]) {
-    location.href = db[code];
+    const params = location.search;
+    const hash   = location.hash;
+
+    location.href = db[code] + params + hash;
   } else {
     document.body.textContent = "Код " + code + " не найден";
   }
